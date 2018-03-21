@@ -1,2 +1,2 @@
 # MultiCast_Example
-A multicast program using Java APIs where TCP connection_oriented is used for connection establishment and UDP DataGrams
+A multicast program using Java APIs where TCP connection_oriented is used for connection establishment and UDP DataGrams, which means no acknowledgements no retransmissions out of order, duplicates possible connectionless, i.e., app indicates destination for each packet for data transfer among a group of 10 users. Priority is allotted to any user who communicates within 3 minutes of getting connected. Assgining a clock to check if user joins the group and also removing users who do not communicate within 3 minutes of joining.
