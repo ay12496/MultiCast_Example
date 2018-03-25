@@ -3,47 +3,50 @@ import java.net.*;
 import java.util.*;  
 
 
-class Store{
+class Store extends Thread{
    public String message="";
    public String address="";
-
-   Store(String str){
-      address=str;
+   protected Socket socket;
+   Store(String address,Socket socket)throws IOException{
+      this.address=address;
+      this.socket=socket;
+      System.out.println("address"+address);
    }
    public String getAddress(){
       return address;
    }
 
    public String getMessage(){
-      
-      String temp= new String(message);
-      message="";
-      return temp;
+      return message;
    }
    public void addMessage(String msg){
-      message=message+"\n"+msg;
+      // System.out.println("Message to:"+getAddress()+msg);
+      if(!message.equals(""))
+         message=message+"\n"+msg;
+      else
+         message=message+msg;
    }
-}
 
-public class Server {
-   static ArrayList<Store> al=new ArrayList<Store>();  
-   public static void main(String[] args) throws IOException{
-      ServerSocket serverSocket= new ServerSocket(6000);
+   public void run(){
       while(true) {
          try {
-            System.out.println("Waiting for client on port " + serverSocket.getLocalPort() + "...");
-            Socket clientSocket = serverSocket.accept();
-            new ClientHandler(clientSocket).start();
-            Store data=new Store(clientSocket.getRemoteSocketAddress().toString());
-            al.add(data);   
-         }
+            String receivedFromOthers=new String(getMessage());
+            if(!receivedFromOthers.equals("")) {
+               // System.out.println("receivedFromOthers:"+receivedFromOthers);
+               DataOutputStream out = new DataOutputStream(socket.getOutputStream()); //created a DataOutputStream object
+               System.out.println(receivedFromOthers);
+               out.writeUTF(receivedFromOthers);
+               message="";
+            }
+            
+         } 
          catch (IOException e) {
-            e.printStackTrace();
             break;
          }
       }
    }
 }
+
 
 class ClientHandler extends Thread{
    protected Socket socket;
@@ -52,11 +55,10 @@ class ClientHandler extends Thread{
       // this.socket.setSoTimeout(10000);
    }
 
-public void run() {
-   String receivedFromOthers="";
-   while(true) {
-      try {
-         System.out.println("Just connected to " + socket.getRemoteSocketAddress());
+   public void run() {
+      while(true) {
+         try {
+            System.out.println("Just connected to " + socket.getRemoteSocketAddress());
             DataInputStream in = new DataInputStream(socket.getInputStream());   //created a DataInputStream object 
             
             String received=in.readUTF();
@@ -67,32 +69,40 @@ public void run() {
             // Iterator itr=Server.al.iterator();  
             for(Store data: Server.al){
                String add=data.address;
-               // System.out.println("Address:"+add);
                if(!add.equals(socket.getRemoteSocketAddress().toString())){
+                  // System.out.println("unequal:"+data.getAddress());
                   data.addMessage(received);
-                  // System.out.println("unequal");
                }
-               if(add.equals(socket.getRemoteSocketAddress().toString())){
-                  receivedFromOthers = new String(data.getMessage());
-                  // System.out.println("equal");
-               }
-
+               // System.out.println("unequal:"+data.getMessage());
             } 
-
-            DataOutputStream out = new DataOutputStream(socket.getOutputStream()); //created a DataOutputStream object
-            // String str="Thank you for connecting to " + socket.getLocalSocketAddress();
-            System.out.println(receivedFromOthers);
-            out.writeUTF(receivedFromOthers);
          } 
-         // catch (SocketTimeoutException s) {
-         //    System.out.println("Socket timed out!");
-         //    break;
-         // } 
          catch (IOException e) {
-            //e.printStackTrace();
             break;
          }
       }
    }
 
 }
+
+
+public class Server {
+   static ArrayList<Store> al=new ArrayList<Store>();  
+   public static void main(String[] args) throws IOException{
+      ServerSocket serverSocket= new ServerSocket(6000);
+      while(true) {
+         try {
+            System.out.println("Waiting for client on port " + serverSocket.getLocalPort() + "...");
+            Socket clientSocket = serverSocket.accept();
+            new ClientHandler(clientSocket).start();
+            Store data=new Store(clientSocket.getRemoteSocketAddress().toString(),clientSocket);
+            data.start();
+            al.add(data);   
+         }
+         catch (IOException e) {
+            e.printStackTrace();
+            break;
+         }
+      }
+   }
+}
+
