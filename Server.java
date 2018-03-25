@@ -48,11 +48,11 @@ class Store extends Thread{
 }
 
 
-class ClientHandler extends Thread{
+class ResponseHandler extends Thread{
    protected Socket socket;
-   ClientHandler(Socket socket)throws IOException {
+   ResponseHandler(Socket socket)throws IOException {
       this.socket=socket;
-      // this.socket.setSoTimeout(10000);
+      this.socket.setSoTimeout(180000);
    }
 
    public void run() {
@@ -66,15 +66,16 @@ class ClientHandler extends Thread{
             if(received.equalsIgnoreCase("Quits")){
                socket.close();   
             }
-            // Iterator itr=Server.al.iterator();  
-            for(Store data: Server.al){
+            for(Store data: Server.ClientList) {
                String add=data.address;
                if(!add.equals(socket.getRemoteSocketAddress().toString())){
-                  // System.out.println("unequal:"+data.getAddress());
                   data.addMessage(received);
                }
-               // System.out.println("unequal:"+data.getMessage());
             } 
+         }
+         catch (SocketTimeoutException s) {
+            System.out.println("Socket timed out!");
+            break;
          } 
          catch (IOException e) {
             break;
@@ -86,17 +87,17 @@ class ClientHandler extends Thread{
 
 
 public class Server {
-   static ArrayList<Store> al=new ArrayList<Store>();  
+   static ArrayList<Store> ClientList = new ArrayList<Store>();  
    public static void main(String[] args) throws IOException{
       ServerSocket serverSocket= new ServerSocket(6000);
       while(true) {
          try {
             System.out.println("Waiting for client on port " + serverSocket.getLocalPort() + "...");
             Socket clientSocket = serverSocket.accept();
-            new ClientHandler(clientSocket).start();
+            new ResponseHandler(clientSocket).start();
             Store data=new Store(clientSocket.getRemoteSocketAddress().toString(),clientSocket);
             data.start();
-            al.add(data);   
+            ClientList.add(data);   
          }
          catch (IOException e) {
             e.printStackTrace();
